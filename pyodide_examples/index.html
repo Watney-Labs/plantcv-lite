@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlantCV Image Processing with Pyodide</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: center;
+        }
+        #upload, #original, #processed {
+            margin: 20px;
+        }
+        img {
+            max-width: 400px;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>PlantCV-Lite PoC Image Processing</h1>
+    <div id="upload">
+        <input type="file" id="imageInput" accept="image/*">
+    </div>
+    <div id="original">
+        <h2>Original Image</h2>
+        <img id="originalImage" alt="Original Image">
+    </div>
+    <div id="processed">
+        <h2>Processed Image</h2>
+        <img id="processedImage" alt="Processed Image">
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+    <script>
+        async function main() {
+            let pyodide = await loadPyodide();
+            await pyodide.loadPackage("micropip");
+            const micropip = pyodide.pyimport("micropip");
+
+            // Install required packages
+            console.log("Installing numpy>=1.26.4...");
+            await micropip.install("numpy>=1.26.4");
+            console.log("Installing matplotlib...");
+            await micropip.install("matplotlib");
+            console.log("Installing opencv-python...");
+            await micropip.install("opencv-python");
+
+            // Install plantcv-lite with --no-deps
+            console.log("Installing plantcv-lite...");
+            try {
+                await pyodide.runPythonAsync(`
+                    import micropip
+                    await micropip.install("http://localhost:8000/plantcv_lite-0.1.0-py3-none-any.whl", deps=False)
+                `);
+                // Verify import
+                await pyodide.runPythonAsync(`
+                    try:
+                        import plantcv
+                        print("plantcv imported successfully:", dir(plantcv))
+                    except Exception as e:
+                        print("Failed to import plantcv:", str(e))
+                `);
+            } catch (e) {
+                console.warn("Failed to install or import plantcv-lite, proceeding with OpenCV processing:", e);
+            }
+
+            // Python code to process the image
+            const pythonCode = `
+import cv2
+import numpy as np
+import base64
+from io import BytesIO
+
+def process_image(image_data):
+    try:
+        # Decode base64 image
+        nparr = np.frombuffer(base64.b64decode(image_data.split(',')[1]), np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        # Convert BGR to RGB
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        
+        # Convert RGB to grayscale using OpenCV
+        gray_img = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
+        
+        # Apply binary thresholding using OpenCV
+        _, thresh = cv2.threshold(gray_img, 128, 255, cv2.THRESH_BINARY)
+        
+        # Convert processed image to base64
+        _, buffer = cv2.imencode('.png', thresh)
+        processed_base64 = "data:image/png;base64," + base64.b64encode(buffer).decode('utf-8')
+        
+        return processed_base64
+    except Exception as e:
+        raise Exception(f"Error in image processing: {str(e)}")
+`;
+
+            console.log("Loading Python processing code...");
+            await pyodide.runPythonAsync(pythonCode);
+
+            // Handle file upload
+            const imageInput = document.getElementById('imageInput');
+            const originalImage = document.getElementById('originalImage');
+            const processedImage = document.getElementById('processedImage');
+
+            imageInput.addEventListener('change', async (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    // Display original image
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        originalImage.src = e.target.result;
+
+                        // Process image with Python
+                        try {
+                            console.log("Processing image...");
+                            const processImage = pyodide.globals.get('process_image');
+                            const processedData = await processImage(e.target.result);
+                            processedImage.src = processedData;
+                            console.log("Image processed successfully");
+                        } catch (e) {
+                            console.error("Error processing image:", e);
+                            alert("Failed to process image. Check console for details.");
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        main().catch(err => {
+            console.error("Main error:", err);
+            alert("Failed to initialize application. Check console for details.");
+        });
+    </script>
+</body>
+</html>

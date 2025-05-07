@@ -5,7 +5,7 @@ license = {file = "LICENSE"}
 version = "0.1.0"
 dependencies = [
     "matplotlib>=1.5",
-    "numpy>=2",
+    "numpy>=1.26.4",
     "pandas",
     "python-dateutil",
     "scipy",
@@ -30,6 +30,8 @@ classifiers = [
     "Development Status :: 5 - Production/Stable",
 ]
 
+readme = "README.md"  # Added to include README in metadata
+
 [project.optional-dependencies]
 test = [
     "pytest",
@@ -42,4 +44,14 @@ plantcv-train = "plantcv.learn.cli:main"
 plantcv-utils = "plantcv.utils.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["plantcv"]
+where = ["."]
+include = ["plantcv", "plantcv.plantcv*"]  # Include plantcv and all submodules
+exclude = ["tests*", "pyodide_examples*"]
+
+[tool.setuptools.package-data]
+"plantcv" = ["*.py"]  # Ensure all Python files are included
+"plantcv.plantcv" = ["*.py"]  # Explicitly include submodule files
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
