@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PlantCV Image Processing with Pyodide</title>
+    <title>PlantCV-Lite PoC Image Processing</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -42,11 +42,59 @@
 
             // Install required packages
             console.log("Installing numpy>=1.26.4...");
-            await micropip.install("numpy>=1.26.4");
+            try {
+                await micropip.install("numpy>=1.26.4");
+            } catch (e) {
+                console.error("Failed to install numpy:", e);
+            }
             console.log("Installing matplotlib...");
-            await micropip.install("matplotlib");
+            try {
+                await micropip.install("matplotlib");
+            } catch (e) {
+                console.error("Failed to install matplotlib:", e);
+            }
             console.log("Installing opencv-python...");
-            await micropip.install("opencv-python");
+            try {
+                await micropip.install("opencv-python");
+            } catch (e) {
+                console.error("Failed to install opencv-python:", e);
+            }
+            console.log("Installing altair...");
+            try {
+                await micropip.install("altair");
+            } catch (e) {
+                console.error("Failed to install altair:", e);
+            }
+            console.log("Installing xarray...");
+            try {
+                await micropip.install("xarray");
+            } catch (e) {
+                console.error("Failed to install xarray:", e);
+            }
+            console.log("Installing scipy...");
+            try {
+                await micropip.install("scipy");
+            } catch (e) {
+                console.error("Failed to install scipy:", e);
+            }
+            console.log("Installing scikit-learn...");
+            try {
+                await micropip.install("scikit-learn");
+            } catch (e) {
+                console.error("Failed to install scikit-learn:", e);
+            }
+            console.log("Installing scikit-image...");
+            try {
+                await micropip.install("scikit-image");
+            } catch (e) {
+                console.error("Failed to install scikit-image:", e);
+            }
+            console.log("Installing statsmodels...");
+            try {
+                await micropip.install("statsmodels");
+            } catch (e) {
+                console.error("Failed to install statsmodels:", e);
+            }
 
             // Install plantcv-lite with --no-deps
             console.log("Installing plantcv-lite...");
@@ -54,9 +102,6 @@
                 await pyodide.runPythonAsync(`
                     import micropip
                     await micropip.install("http://localhost:8000/plantcv_lite-0.1.0-py3-none-any.whl", deps=False)
-                `);
-                // Verify import
-                await pyodide.runPythonAsync(`
                     try:
                         import plantcv
                         print("plantcv imported successfully:", dir(plantcv))
@@ -71,6 +116,8 @@
             const pythonCode = `
 import cv2
 import numpy as np
+from plantcv import plantcv as pcv
+import matplotlib.pyplot as plt
 import base64
 from io import BytesIO
 
@@ -86,8 +133,9 @@ def process_image(image_data):
         # Convert RGB to grayscale using OpenCV
         gray_img = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
         
-        # Apply binary thresholding using OpenCV
-        _, thresh = cv2.threshold(gray_img, 128, 255, cv2.THRESH_BINARY)
+        # Apply PlantCV binary thresholding
+        pcv.params.debug = None
+        thresh = pcv.threshold.binary(gray_img=gray_img, threshold=100, object_type="dark")
         
         # Convert processed image to base64
         _, buffer = cv2.imencode('.png', thresh)
@@ -99,7 +147,11 @@ def process_image(image_data):
 `;
 
             console.log("Loading Python processing code...");
-            await pyodide.runPythonAsync(pythonCode);
+            try {
+                await pyodide.runPythonAsync(pythonCode);
+            } catch (e) {
+                console.error("Failed to load Python code:", e);
+            }
 
             // Handle file upload
             const imageInput = document.getElementById('imageInput');

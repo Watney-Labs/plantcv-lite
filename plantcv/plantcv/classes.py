@@ -4,7 +4,7 @@ import cv2
 import json
 import numpy as np
 import datetime
-from plantcv.plantcv import __version__ as ver
+from plantcv import __version__ as ver
 from plantcv.plantcv import fatal_error
 from plantcv.plantcv.annotate.points import _find_closest_pt
 import matplotlib.pyplot as plt
@@ -16,10 +16,23 @@ import pandas as pd
 class Params:
     """PlantCV parameters class."""
 
-    def __init__(self, device=0, debug=None, debug_outdir=".", line_thickness=5,
-                 line_color=(255, 0, 255), dpi=100, text_size=0.55,
-                 text_thickness=2, marker_size=60, color_scale="gist_rainbow", color_sequence="sequential",
-                 sample_label="default", saved_color_scale=None, verbose=True):
+    def __init__(
+        self,
+        device=0,
+        debug=None,
+        debug_outdir=".",
+        line_thickness=5,
+        line_color=(255, 0, 255),
+        dpi=100,
+        text_size=0.55,
+        text_thickness=2,
+        marker_size=60,
+        color_scale="gist_rainbow",
+        color_sequence="sequential",
+        sample_label="default",
+        saved_color_scale=None,
+        verbose=True,
+    ):
         """Initialize parameters.
 
         Keyword arguments/parameters:
@@ -78,6 +91,7 @@ class Outputs:
         self.metadata = {}
 
         # Add a method to clear measurements
+
     def clear(self):
         """Clear all measurements"""
         self.measurements = {}
@@ -86,7 +100,9 @@ class Outputs:
         self.metadata = {}
 
     # Method to add observation to outputs
-    def add_observation(self, sample, variable, trait, method, scale, datatype, value, label):
+    def add_observation(
+        self, sample, variable, trait, method, scale, datatype, value, label
+    ):
         """Keyword arguments/parameters:
         sample       = Sample name. Used to distinguish between multiple samples
         variable     = A local unique identifier of a variable, e.g. a short name,
@@ -126,7 +142,7 @@ class Outputs:
             "scale": scale,
             "datatype": str(datatype),
             "value": value,
-            "label": label
+            "label": label,
         }
 
     # Method to add metadata instance to outputs
@@ -150,10 +166,7 @@ class Outputs:
         _ = _validate_data_type(value)
 
         # Save the observation for the sample and variable
-        self.metadata[term] = {
-            "datatype": str(datatype),
-            "value": [value]
-        }
+        self.metadata[term] = {"datatype": str(datatype), "value": [value]}
 
     # Method to save observations to a file
     def save_results(self, filename, outformat="json"):
@@ -173,7 +186,7 @@ class Outputs:
 
         if outformat.upper() == "JSON":
             if os.path.isfile(filename):
-                with open(filename, 'r') as f:
+                with open(filename, "r") as f:
                     hierarchical_data = json.load(f)
                     hierarchical_data["observations"] = self.observations
                     existing_metadata = hierarchical_data["metadata"]
@@ -183,8 +196,11 @@ class Outputs:
                             save_term = f"{term}_1"
                         hierarchical_data["metadata"][save_term] = self.metadata[term]
             else:
-                hierarchical_data = {"metadata": self.metadata, "observations": self.observations}
-            with open(filename, mode='w') as f:
+                hierarchical_data = {
+                    "metadata": self.metadata,
+                    "observations": self.observations,
+                }
+            with open(filename, mode="w") as f:
                 json.dump(hierarchical_data, f)
 
         elif outformat.upper() == "CSV":
@@ -204,23 +220,38 @@ class Outputs:
                         # If the data type is a list or tuple we need to unpack the data
                         if isinstance(val, (list, tuple)):
                             # Combine each value with its label
-                            for value, label in zip(self.observations[sample][var]["value"],
-                                                    self.observations[sample][var]["label"]):
+                            for value, label in zip(
+                                self.observations[sample][var]["value"],
+                                self.observations[sample][var]["label"],
+                            ):
                                 # Skip list of tuple data types
                                 if not isinstance(value, tuple):
                                     # Save one row per value-label
-                                    row = metadata_val_list + [sample, var, value, label]
+                                    row = metadata_val_list + [
+                                        sample,
+                                        var,
+                                        value,
+                                        label,
+                                    ]
                                     csv_table.write(",".join(map(str, row)) + "\n")
                         # If the data type is Boolean, store as a numeric 1/0 instead of True/False
                         elif isinstance(val, bool):
-                            row = metadata_val_list + [sample, var, int(self.observations[sample][var]["value"]),
-                                                       self.observations[sample][var]["label"]]
+                            row = metadata_val_list + [
+                                sample,
+                                var,
+                                int(self.observations[sample][var]["value"]),
+                                self.observations[sample][var]["label"],
+                            ]
                             csv_table.write(",".join(map(str, row)) + "\n")
                         # For all other supported data types, save one row per trait
                         # Assumes no unusual data types are present (possibly a bad assumption)
                         else:
-                            row = metadata_val_list + [sample, var, self.observations[sample][var]["value"],
-                                                       self.observations[sample][var]["label"]]
+                            row = metadata_val_list + [
+                                sample,
+                                var,
+                                self.observations[sample][var]["value"],
+                                self.observations[sample][var]["label"],
+                            ]
                             csv_table.write(",".join(map(str, row)) + "\n")
 
     def plot_dists(self, variable):
@@ -240,31 +271,44 @@ class Outputs:
         for sample in self.observations:
             # If the measurement variable is present in the sample
             # And the data type is a list
-            if variable in self.observations[sample] and "list" in (self.observations[sample][variable]["datatype"]):
-                data["value"] = data["value"] + self.observations[sample][variable]["value"]
-                data["label"] = data["label"] + self.observations[sample][variable]["label"]
-                data["sample"] = data["sample"] + [sample] * len(self.observations[sample][variable]["value"])
+            if (
+                variable in self.observations[sample]
+                and "list" in (self.observations[sample][variable]["datatype"])
+            ):
+                data["value"] = (
+                    data["value"] + self.observations[sample][variable]["value"]
+                )
+                data["label"] = (
+                    data["label"] + self.observations[sample][variable]["label"]
+                )
+                data["sample"] = data["sample"] + [sample] * len(
+                    self.observations[sample][variable]["value"]
+                )
         df = pd.DataFrame(data)
         step = 10
         overlap = 10
-        chart = alt.Chart(df, height=step, width=500).mark_area(
-            interpolate="monotone", fillOpacity=0.8, stroke='lightgray', strokeWidth=0.5
-        ).encode(
-            alt.X('label:Q').title('Bin labels'),
-            alt.Y('value:Q').axis(None).scale(range=[step, -step * overlap])
-        ).facet(
-            alt.Row('sample:N').title(None).header(labelAngle=0, labelAlign='left', labelOrient="left")
-        ).configure_facet(
-            spacing=0,
-            columns=1
-        ).properties(
-            bounds='flush'
-        ).configure_title(
-            anchor="end"
-        ).configure_view(
-            stroke=None
-        ).configure_axis(
-            grid=False
+        chart = (
+            alt.Chart(df, height=step, width=500)
+            .mark_area(
+                interpolate="monotone",
+                fillOpacity=0.8,
+                stroke="lightgray",
+                strokeWidth=0.5,
+            )
+            .encode(
+                alt.X("label:Q").title("Bin labels"),
+                alt.Y("value:Q").axis(None).scale(range=[step, -step * overlap]),
+            )
+            .facet(
+                alt.Row("sample:N")
+                .title(None)
+                .header(labelAngle=0, labelAlign="left", labelOrient="left")
+            )
+            .configure_facet(spacing=0, columns=1)
+            .properties(bounds="flush")
+            .configure_title(anchor="end")
+            .configure_view(stroke=None)
+            .configure_axis(grid=False)
         )
         return chart
 
@@ -288,15 +332,27 @@ def _validate_data_type(data):
         If the data type is not supported by JSON.
     """
     # Supported data types
-    supported_dtype = ["int", "float", "str", "list", "bool", "tuple", "dict", "NoneType", "numpy.float64"]
+    supported_dtype = [
+        "int",
+        "float",
+        "str",
+        "list",
+        "bool",
+        "tuple",
+        "dict",
+        "NoneType",
+        "numpy.float64",
+    ]
     # Supported class types
     class_list = [f"<class '{cls}'>" for cls in supported_dtype]
 
     # Send an error message if datatype is not supported by json
     if str(type(data)) not in class_list:
         # String list of supported types
-        type_list = ', '.join(map(str, supported_dtype))
-        fatal_error(f"The Data type {type(data)} is not compatible with JSON! Please use only these: {type_list}!")
+        type_list = ", ".join(map(str, supported_dtype))
+        fatal_error(
+            f"The Data type {type(data)} is not compatible with JSON! Please use only these: {type_list}!"
+        )
 
     return True
 
@@ -304,9 +360,25 @@ def _validate_data_type(data):
 class Spectral_data:
     """PlantCV Hyperspectral data class"""
 
-    def __init__(self, array_data, max_wavelength, min_wavelength, max_value, min_value, d_type, wavelength_dict,
-                 samples, lines, interleave, wavelength_units, array_type, pseudo_rgb, filename, default_bands,
-                 metadata=None):
+    def __init__(
+        self,
+        array_data,
+        max_wavelength,
+        min_wavelength,
+        max_value,
+        min_value,
+        d_type,
+        wavelength_dict,
+        samples,
+        lines,
+        interleave,
+        wavelength_units,
+        array_type,
+        pseudo_rgb,
+        filename,
+        default_bands,
+        metadata=None,
+    ):
         # The actual array/datacube
         self.array_data = array_data
         # Min/max available wavelengths (for spectral datacube)
@@ -357,7 +429,7 @@ class PSII_data:
         for k, v in self.__dict__.items():
             if v is not None:
                 mvars.append(k)
-        return "PSII variables defined:\n" + '\n'.join(mvars)
+        return "PSII variables defined:\n" + "\n".join(mvars)
 
     def add_data(self, protocol):
         """Input:
@@ -385,14 +457,13 @@ class Points:
         self.points = []
         self.events = []
 
-        self.fig.canvas.mpl_connect('button_press_event', self.onclick)
+        self.fig.canvas.mpl_connect("button_press_event", self.onclick)
 
     def onclick(self, event):
         """Handle mouse click events"""
         self.events.append(event)
         if event.button == 1:
-
-            self.ax.plot(event.xdata, event.ydata, 'x', c='red')
+            self.ax.plot(event.xdata, event.ydata, "x", c="red")
             self.points.append((floor(event.xdata), floor(event.ydata)))
 
         else:
@@ -421,7 +492,10 @@ class Objects:
     def __next__(self):
         if self._n < len(self.contours):
             self._n += 1
-            return Objects(contours=[self.contours[self._n-1]], hierarchy=[self.hierarchy[self._n-1]])
+            return Objects(
+                contours=[self.contours[self._n - 1]],
+                hierarchy=[self.hierarchy[self._n - 1]],
+            )
         raise StopIteration
 
     def append(self, contour, h):
@@ -437,5 +511,5 @@ class Objects:
     def load(filename):
         """Load a saved object file"""
         file = np.load(filename)
-        obj = Objects(file['contours'].tolist(), file['hierarchy'])
+        obj = Objects(file["contours"].tolist(), file["hierarchy"])
         return obj

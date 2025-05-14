@@ -45,12 +45,15 @@ plantcv-utils = "plantcv.utils.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["plantcv", "plantcv.plantcv*"]  # Include plantcv and all submodules
+include = ["plantcv", "plantcv.plantcv*", "plantcv.learn*", "plantcv.parallel*", "plantcv.utils*"]
 exclude = ["tests*", "pyodide_examples*"]
 
 [tool.setuptools.package-data]
-"plantcv" = ["*.py"]  # Ensure all Python files are included
-"plantcv.plantcv" = ["*.py"]  # Explicitly include submodule files
+"plantcv" = ["*.py"]
+"plantcv.plantcv" = ["*.py"]
+"plantcv.learn" = ["*.py"]
+"plantcv.parallel" = ["*.py"]
+"plantcv.utils" = ["*.py"]
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]

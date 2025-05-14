@@ -1,7 +1,7 @@
 # Deprecation handling
 
 import sys
-from plantcv.plantcv import __version__ as version
+from plantcv import __version__ as version
 from plantcv.plantcv import params
 
 
